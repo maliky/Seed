@@ -1,0 +1,79 @@
+#!/bin/bash
+# #!/bin/bash -x
+# for debugging
+
+# arguments are in $1 $2 and $0 for the whole line I think
+
+#### Function section
+
+printusage() {
+    prog=$(basename "$0") # s'écrit aussi ${0##*/}
+    cat <<EOF
+Usage: $prog [-hLU] [-d DEPTH] [-p PATH] [-g GREPOPTS] REGEX
+run: find "\$followlink" "\$path" -maxdepth "\$depth" \( -path "*.ipynb_checkpoint*" \) -prune -o -type f -name "*pynb"  -exec grep -"\$grepopts"  "\$regex" {} \; 2>/dev/null | grep -v ":0" |  sort -t : -k 2 -n "\$uniq"
+Grep les fichiers *pynb dans PATH en suivant les liens si -L est donné. Cherche parmi les fichiers jusqu'à une profondeur de DEPTH.
+     -h	 	  Affiche l'aide
+     -L		  Suis les liens
+     -U		  only get first uniq results
+     -d	DEPTH	  un nombre indicant la profondeur maximun (def. 1)
+     -p	PATH	  le chemin à chercher (def. "./")
+     -g GREPOPTS  Options for the grep commande (def Hn translated to -Hn)
+     REGEX	  l'expression régulière à chercher
+EOF
+}
+
+#### handle arguments
+path="./"
+depth=1
+followlink=""
+grepopts="Hn"
+uniq=""
+OPTIND=1
+while getopts "hLUd:p:g:" opt; do
+    case "$opt" in
+	h)
+	    printusage
+	    exit 0
+	    ;;
+	L) followlink="-L";;
+	U) uniq="sorting uniqu";;
+	d) depth=$OPTARG;;
+	p) path=$OPTARG;;
+	g) grepopts=$OPTARG;;
+	'?')
+	    printusage >&2
+	    exit 1;;
+    esac
+done
+shift "$((OPTIND-1))" # Shift off the options and optional --.
+
+if [[ -z "$@" ]]; then
+    echo "You are missing the REGEX." >&2
+    printusage
+    exit 1
+fi
+
+regex="$@"
+
+#### Run section
+
+
+if [[ -z $uniq ]]; then
+    echo     "find $followlink $path -maxdepth $depth \( -path \"*.ipynb_checkpoint*\" \) -prune -o -type f -name \"*pynb\"  -exec grep -$grepopts  $regex {} \; 2>/dev/null | grep -v \":0\" |  sort -t : -k 2 -n ;"
+    find "$followlink" "$path" -maxdepth "$depth" \( -path "*.ipynb_checkpoint*" \) -prune -o -type f -name "*pynb"  -exec grep -"$grepopts"  "$regex" {} \; 2>/dev/null | grep -v ":0" |  sort -t : -k 2 -n ;
+
+
+
+
+else
+    echo     "find $followlink $path -maxdepth $depth \( -path \"*.ipynb_checkpoint*\" \) -prune -o -type f -name \"*pynb\"  -exec grep -$grepopts  $regex {} \; 2>/dev/null | grep -v \":0\" |  sort -t : -k 2 -n | sort -u -t: -k1,1 ;"
+    find "$followlink" "$path" -maxdepth "$depth" \( -path "*.ipynb_checkpoint*" \) -prune -o -type f -name "*pynb"  -exec grep -"$grepopts"  "$regex" {} \; 2>/dev/null | grep -v ":0" |  sort -t : -k 2 -n | sort -u -t: -k1,1 ;
+
+
+
+fi
+
+exit 1
+
+
+

@@ -1,0 +1,2239 @@
+#+PROPERTY: header-args :tangle yes :results silent :session init
+# #+PROPERTY: header-args :tangle yes :results silent :session init :eval never-export :comments org
+# C-c C-v t --> to tangle
+
+* Préambule
+  #+BEGIN_SRC emacs-lisp -i  
+;;; packages --- Summary
+;;; Commentary: fichier init.el
+;;; Code:
+  #+END_SRC
+
+* learning
+  hooks:
+  adding a function call on a hook 
+  (add-hook 'text-mode-hook 'auto-fill-mode)
+
+  removing it from one of the sub modes
+  (add-hook 'latex-mode-hook (lambda () (auto-fill-mode -1)))
+
+* Emacs package system
+** Base Requirements
+   #+BEGIN_SRC emacs-lisp -i  
+(let ((default-directory  "~/.emacs.d/elpa/"))
+  (normal-top-level-add-subdirs-to-load-path))
+   #+END_SRC
+
+** Divers requirements
+   #+BEGIN_SRC emacs-lisp -i
+(require 'iso-transl)
+(require 'request)
+   #+END_SRC
+
+   #+BEGIN_SRC emacs-lisp -i
+(require 'package)
+(package-initialize)
+   #+END_SRC
+
+** COMMENT package-archive
+
+   #+BEGIN_SRC emacs-lisp -i
+(setq package-archives '(
+			 ("melpa" . "https://melpa.org/packages/")
+			 ("org" . "https://orgmode.org/elpa/")))
+(package-refresh-contents)
+(package-initialize)
+   #+END_SRC
+
+** Path
+   #+BEGIN_SRC emacs-lisp -i  
+;;; --- Get environment variables such as $PATH from the shell
+
+;; avoid checking if environnment varialbe are set .profil and not in .bashrc (not good because only for interactive)
+(setq exec-path-from-shell-arguments nil)
+
+;; (setq exec-path-from-shell-arguments (list))
+;; note ^I is tab for emacs
+(setq saved-exec-args exec-path-from-shell-arguments)
+(setq exec-path-from-shell-arguments 
+      (remove "-i" exec-path-from-shell-arguments))
+
+(when (memq window-system '(mac ns x))
+  (exec-path-from-shell-initialize))
+;; (exec-path-from-shell-initialize)
+   #+END_SRC
+
+
+* Backup and autosave
+  #+BEGIN_SRC emacs-lisp -i
+;; (setq backup-directory-alist
+;;       `(("." . ,(expand-file-name (concat user-emacs-directory "backups")))))
+
+;; (setq backup-by-copying t)
+;; (defvar autosave-dir (expand-file-name "~/.emacs.d/auto-save-list/"))
+;; (setq auto-save-list-file-prefix autosave-dir)
+;; (setq auto-save-file-name-transforms `((".*" ,autosave-dir t)))
+  #+END_SRC
+
+
+* Utilities
+** Raccourcis clavier char spéciaux
+   - Utiliser le mode tex
+
+   #+BEGIN_SRC emacs-lisp -i
+(defun mlk_cycle_through (list)
+  "Tourne à travers les éléments de liste d'un pas à chaque appel"
+  (set list (append (cdr (symbol-value list))
+		    `(,(car (symbol-value list))))))
+   #+END_SRC
+
+** Remote connection TRAMP
+https://www.emacswiki.org/emacs/TrampMode
+   C-x C-f /remotehost:filename  RET (or /method:user@remotehost:filename)
+
+#+BEGIN_SRC emacs-lisp -i
+(setq tramp-default-method "ssh")
+(setq enable-remote-dir-locals t) 
+#+END_SRC
+* Se déplacer
+  https://www.gnu.org/software/emacs/manual/html_node/emacs/Init-Rebinding.html
+** General keyboard shortcuts
+   Voir comment ajouter des raccourcis qui agissent dans l'une des fenêtres visible si celle si à un mode particulier
+
+*** key-chord
+    #+BEGIN_SRC emacs-lisp -i
+;; ! key-chord do not work in macros
+(key-chord-mode 1)
+    #+END_SRC
+
+*** Important navigation and edition keys
+    use €sk et €kc snippets
+
+    #+BEGIN_SRC emacs-lisp -i -i
+;; (balance-windows)
+;; (global-set-key (kbd "C-x )") (lambda () (interactive) (ignore-errors (shrink-window-if-larger-than-buffer))))
+
+
+;; ce déplacer dans les fenêtres (window et non buffer)
+;; (global-set-key (kbd "s-n") 'other-window)  ; conflit avec open
+(global-set-key (kbd "s-p") (lambda ()
+			      (interactive)
+			      (ignore-errors (other-window -1))))
+(global-set-key (kbd "C-x p") (lambda ()
+			      (interactive)
+			      (ignore-errors (other-window -1))))
+
+;; faire une fonction pour me positionner dans la nouvelle fenêtre crée
+(global-set-key (kbd "C-x à") 'delete-window)
+(key-chord-define-global "dw" 'delete-window)
+(key-chord-define-global "kk" 'kill-buffer)
+
+(global-set-key (kbd "C-x &") 'delete-other-windrsows)
+(global-set-key (kbd "C-x é") 'split-window-below)
+(global-set-key (kbd "C-x \"") 'split-window-right)
+(global-set-key (kbd "s-)") 'ace-delete-window)
+
+;; buffer manipulation
+(global-set-key (kbd "<f5>") 'previous-buffer)
+(global-set-key (kbd "<f7>") 'kill-buffer)
+(global-set-key (kbd "<f6>") 'next-buffer)
+
+;; history
+(key-chord-define-global "&h" 'list-command-history)
+(key-chord-define-global "hh" 'list-command-history)
+
+;; C-x M-:, C-x M-ESC, C-x <ESC> <ESC>
+(key-chord-define-global "&r" 'repeat-complex-command)
+
+;; visual-line-mode on
+(key-chord-define-global "&v" 'visual-line-mode)
+(key-chord-define-global "&!" 'toggle-truncate-lines)
+;; (key-chord-define-global "&w" toggle-word-wrap)
+
+;; occur
+(global-set-key (kbd "C-c o") 'occur)
+
+;; devrait être au choix
+(global-set-key (kbd "C-u") 'universal-argument)
+(key-chord-define-global "uu" 'universal-argument)
+
+;; (global-set-key (kbd "£") 'universal-argument)
+					;   (global-set-key (kbd "C-!")  'undo)
+;;(global-set-key "\C-&" 'universal-argument)
+
+;; raccourcis pour les remplacements
+(global-set-key (kbd "C-c r") 'replace-regexp)
+(global-set-key (kbd "C-c s") 'replace-string)
+
+;; edition
+(global-set-key (kbd "C-x w") 'repeat)  ; w remplace z sur azerty
+    #+END_SRC
+
+*** other
+
+    #+BEGIN_SRC emacs-lisp -i
+;; mark position trop de la balle... C-u C-SPC C-SPC
+(setq set-mark-command-repeat-pop t)
+
+(key-chord-define-global "aa" 'align-regexp)
+
+;; whitespace-cleanup
+(global-set-key (kbd "C-c u") 'whitespace-cleanup)
+(global-set-key (kbd "s-t") 'transpose-sexps) ; windows +t
+(global-set-key (kbd "s-l") 'transpose-lines)
+    #+END_SRC
+
+** Afficher
+
+   #+BEGIN_SRC emacs-lisp -i
+;; toggle-theme !
+(setq custom-enabled-themes '(tsdh-dark tsdh-light))
+
+(defun mlk_toggle_theme ()
+  "toggle parmis les themes enabled"
+  (interactive)
+  (enable-theme (car (mlk_cycle_through 'custom-enabled-themes))))
+
+(key-chord-define-global "&t" 'mlk_toggle_theme)
+
+;; active un theme dark
+(key-chord-define-global "&n" (lambda ()
+				(interactive)
+				(ignore-errors (nimbus-theme))))
+   #+END_SRC
+
+** Ace-navigation
+   #+BEGIN_SRC emacs-lisp -i
+(global-set-key (kbd "M-s M-o") 'ace-swap-window)
+(global-set-key (kbd "M-s M-s") 'ace-window)
+(global-set-key (kbd "M-s M-d") 'ace-delete-window)
+
+(setq aw-keys '(?q ?s ?d ?f ?g ?h ?j ?k ?l))
+(defvar aw-dispatch-alist
+  '((?x aw-delete-window "Delete Window")
+    (?m aw-swap-window "Swap Windows")
+    (?M aw-move-window "Move Window")
+    (?j aw-switch-buffer-in-window "Select Buffer")
+    (?n aw-flip-window)
+    (?u aw-switch-buffer-other-window "Switch Buffer Other Window")
+    (?c aw-split-window-fair "Split Fair Window")
+    (?v aw-split-window-vert "Split Vert Window")
+    (?b aw-split-window-horz "Split Horz Window")
+    (?o delete-other-windows "Delete Other Windows")
+    (?? aw-show-dispatch-help))
+  "List of actions for `aw-dispatch-default'.")
+
+;; ace-jump mode
+(key-chord-define-global "jj" 'ace-jump-mode)
+(key-chord-define-global "jc" 'ace-jump-char-mode)
+(key-chord-define-global "jw" 'ace-jump-word-mode)
+
+   #+END_SRC
+
+** Ace-jump-mode
+   #+BEGIN_SRC emacs-lisp -i
+(add-to-list 'load-path "~/.emacs.d/plugins/ace-jump-mode")
+(autoload
+  'ace-jump-mode
+  "ace-jump-mode"
+  "Emacs quick move minor mode"
+  t)
+;;
+;; enable a more powerful jump back function from ace jump mode
+;;
+(autoload
+  'ace-jump-mode-pop-mark
+  "ace-jump-mode"
+  "Ace jump back:-)"
+  t)
+(eval-after-load "ace-jump-mode"
+  '(ace-jump-mode-enable-mark-sync))
+
+(setq ace-jump-mode-scope 'visible)  ; 'global ou 'visible ou 'window
+   #+END_SRC
+
+** move more quickly
+   http://whattheemacsd.com/
+   #+BEGIN_SRC emacs-lisp -i
+;; Move more quickly
+(global-set-key (kbd "C-S-n")
+		(lambda ()
+		  (interactive)
+		  (ignore-errors (next-line 5))))
+
+(global-set-key (kbd "C-S-p")
+		(lambda ()
+		  (interactive)
+		  (ignore-errors (previous-line 5))))
+
+;; (global-set-key (kbd "C-S-f")
+;; 		(lambda ()
+;; 		  (interactive)
+;; 		  (ignore-errors (forward-char 5))))
+
+
+(global-set-key (kbd "C-S-f") 'find-dired)
+;; (lambda ()
+;; (interactive)
+;; (ignore-errors (find-dired))))
+
+(global-set-key (kbd "C-S-b")
+		(lambda ()
+		  (interactive)
+		  (ignore-errors (backward-char 5))))
+   #+END_SRC
+
+** beginend-mode
+   https://github.com/DamienCassou/beginend
+   # comment mettre ça juste pour un mode par exemple dired ?
+
+   #+BEGIN_SRC emacs-lisp -i
+(beginend-global-mode 1)
+(global-set-key (kbd "C-.") (lambda () (interactive) (ignore-errors (beginning-of-buffer))))
+(global-set-key (kbd "C-/") (lambda () (interactive) (ignore-errors (end-of-buffer))))
+(beginend-dired-mode 1)
+;; mcdb
+   #+END_SRC
+
+* Afficher (Fonts - thème)
+  https://www.emacswiki.org/emacs/FacesPerBuffer
+
+;; faire une fonction pour insérer dans le buffer
+(insert (propertize "ton" 'font-lock-face '(:strike-through t)))
+
+  #+BEGIN_SRC emacs-lisp -i
+    ;;;;;;;;;;;;;;;; Fonts
+(put 'downcase-region 'disabled nil)
+(put 'upcase-region 'disabled nil)
+  #+END_SRC
+
+** font shortcuts
+   #+BEGIN_SRC emacs-lisp -i
+(setq fonts-family
+      '(
+	(:family "Bitstream Vera Sans Mono"
+		 :foundry "Bits"
+		 :slant normal
+		 :weight normal
+		 :height 110
+		 :width normal)
+	(:family "Ubuntu Mono"
+		 :foundry "PfED"
+		 :slant normal
+		 :weight normal
+		 :height 110
+		 :width normal)
+	(:family "DejaVu Sans"
+		 :foundry "PfED"
+		 :slant normal
+		 :weight normal
+		 :height 110
+		 :width normal)))
+
+
+(defun mlk_toggle_fonts ()
+  "toggle parmis les themes enabled"
+  (interactive)
+  (setq buffer-face-mode-face (car (mlk_cycle_through 'mlk-fonts-family)))
+  (buffer-face-mode))
+
+(key-chord-define-global "&f" 'mlk_toggle_fonts)
+
+;; faire une fonction qui toggle l'un ou l'autre
+;; (key-chord-define-global "(f" 'set-font-mono)
+;; (key-chord-define-global "(g" 'set-font-defaut)
+
+   #+END_SRC
+
+** org font
+   #+BEGIN_SRC emacs-lisp -i
+(custom-set-faces
+ '(default ((t (
+		:family "Ubuntu Mono"
+		:foundry "PfEd"
+		:slant normal
+		:weight normal
+		:height 110
+		:width normal))))
+ '(org-mode ((t (
+		 :family "DejaVu Sans"
+		 :foundry "PfEd"
+		 :slant normal
+		 :weight normal
+		 :height 110
+		 :width normal))))
+ '(org-table ((t (
+		  :foreground "LightSkyBlue"
+		  :family "Ubuntu Mono")))))
+   #+END_SRC
+
+** toggle menu-bar
+   #+BEGIN_SRC emacs-lisp -i
+(key-chord-define-global "(m" 'toggle-menu-bar-mode-from-frame)
+   #+END_SRC
+
+** font Functions
+   #+BEGIN_SRC emacs-lisp -i
+(defun set-font-mono ()
+  "set a font for Info buffer"
+  (interactive)
+  (setq buffer-face-mode-face '(:family "Ubuntu Mono" :height 110))
+  (buffer-face-mode))
+
+(defun set-font-defaut ()
+  "set a font for Info buffer"
+  (interactive)
+  (setq buffer-face-mode-face '(:family "DejaVu Sans" :height 110))
+  (buffer-face-mode))
+   #+END_SRC
+
+** handling frames
+   from https://github.com/wasamasa/shackle
+
+* S'informer
+** info
+#+BEGIN_SRC emacs-lisp -i
+;; (setq Info-directory-list (append Info-directory-list Info-default-directory-list))
+#+END_SRC
+
+** engine-mode
+   https://github.com/hrs/engine-mode
+   facilite la recherche de docs  à partir d'emacs dans les moteurs de recherches
+   #+BEGIN_SRC emacs-lisp -i
+(engine-mode 1)
+
+;; the the default browser
+(setq engine/browser-function 'eww-browse-url)
+;;(setq engine/browser-function 'browse-url-browser-function) ; default
+
+
+;; keymap rebinding.  By defautl C-x /
+;; (engine/set-keymap-prefix (kbd "C-c s"))
+    ;;;; engines
+
+(defengine thesaurus
+  "https://www.thesaurus.com/browse/%s"
+  :keybinding "t"
+  )
+
+(defengine duckduckgo
+  "https://duckduckgo.com/?q=%s"
+  :keybinding "d"
+  :docstring "Cherche encore !"
+  ;;  :browser 'eww-browse-url  ; set browser for this engine
+  )
+
+(defengine google
+  "http://www.google.com/search?ie=utf-8&oe=utf-8&q=%s"
+  :keybinding "g")
+
+(defengine google-images
+  "http://www.google.com/images?hl=en&source=hp&biw=1440&bih=795&gbv=2&aq=f&aqi=&aql=&oq=&q=%s"
+  :keybinding "i"
+  )
+
+(defengine cnrtl-etymologie
+  "http://cnrtl.fr/etymologie/%s"
+  :keybinding "e"
+  )
+
+(defengine cnrtl-lexicographie
+  "http://cnrtl.fr/definition/%s"
+  :keybinding "l"
+  )
+
+(defengine google-maps
+  "http://maps.google.com/maps?q=%s"
+  :docstring "Mappin' it up."
+  :keybinding "m"
+  ;; :browser 'firfoxe ;trouver comment mettre ça
+  )
+
+(defengine ctan
+  "http://www.ctan.org/search/?x=1&PORTAL=on&phrase=%s"
+  :keybinding "c"
+  :docstring "Search the Comprehensive TeX Archive Network (ctan.org)")
+
+(defengine github
+  "https://github.com/search?ref=simplesearch&q=%s"
+  :keybinding "h"
+  )
+
+(defengine google-scholar
+  "https://scholar.google.fr/scholar?hl=fr&ie=utf-8&oe=utf-8&q=%s"
+  :keybinding "r"
+  )
+
+(defengine stack-overflow
+  "https://stackoverflow.com/search?q=%s"
+  :keybinding "s"
+  )
+
+(defengine wikipedia
+  "http://www.wikipedia.org/search-redirect.php?language=en&go=Go&search=%s"
+  :keybinding "w"
+  :docstring "Searchin' the wikis.")
+
+(defengine wordpress
+  "https://developer.wordpress.org/reference/functions/%s/"
+  :keybinding "w"
+  )
+
+(defengine youtube
+  "http://www.youtube.com/results?aq=f&oq=&search_query=%s"
+  :keybinding "y"
+  )
+   #+END_SRC
+
+** Web browser w3m
+   #+BEGIN_SRC emacs-lisp -i
+;; (setq browse-url-browser-function 'w3m-browse-url)
+;; (setq browse-url-browser-function 'eww-follow-link)
+;; (autoload 'w3m-browse-url "w3m" "Ask a WWW browser to show a URL." t)
+;; optional keyboard short-cut
+(global-set-key (kbd "C-~ C-~") 'browse-url-at-point)
+(global-set-key (kbd "C-~ s") 'eww-copy-page-url)
+   #+END_SRC
+
+* Selectionner
+** Expand region
+   https://github.com/magnars/expand-region.el
+   #+BEGIN_SRC emacs-lisp -i
+(add-to-list 'load-path "~/.emacs.d/plugins/expand-region")
+(pending-delete-mode)
+
+;; expand-region
+(key-chord-define-global "x&" 'er/expand-region)
+(key-chord-define-global "xx" 'er/expand-region)
+
+   #+END_SRC
+
+* Se rappeler
+** Bookmarks
+   installé par défaut
+   https://www.emacswiki.org/emacs/BookMarks
+
+   #+BEGIN_SRC emacs-lisp -i
+
+;; garder les bookmarks on top
+
+(defadvice bookmark-jump (after bookmark-jump activate)
+  (let ((latest (bookmark-get-bookmark bookmark)))
+    (setq bookmark-alist (delq latest bookmark-alist))
+    (add-to-list 'bookmark-alist latest)))
+   #+END_SRC
+
+** Register
+
+   #+BEGIN_SRC emacs-lisp -i  
+(global-set-key (kbd "s-m m") 'point-to-register)
+(global-set-key (kbd "s-m s-m") 'jump-to-register)
+
+(global-set-key (kbd "s-m c") 'copy-to-register)
+(global-set-key (kbd "s-m i") 'insert-to-register)
+   #+END_SRC
+
+** Which-key
+
+   help with shortcuts, afficher touches complémentaires et leur fonctions lorsqu'un raccourci est entamé.
+   https://github.com/justbur/emacs-which-key
+
+   #+BEGIN_SRC emacs-lisp -i
+(which-key-mode t)
+   #+END_SRC
+
+** Auto-completer
+*** divers
+
+    #+BEGIN_SRC emacs-lisp -i
+;; completion-at-point
+(key-chord-define-global ",," 'completion-at-point)
+(global-set-key (kbd "M-²") 'completion-at-point)
+    #+END_SRC
+
+*** Yasnippet
+    http://github.com/joaotavora/yasnippet
+
+    #+BEGIN_SRC emacs-lisp -i
+(yas-global-mode 1)  ; to enable it as a major mod
+
+    ;;;; keyboard shortcuts s-y
+(global-set-key (kbd "s-y l") 'yas-load-directory)
+(global-set-key (kbd "s-y a") 'yas-reload-all)
+    #+END_SRC
+
+* Ecrire (AUCTex et lacheck)
+
+  #+BEGIN_SRC emacs-lisp -i
+;; (setq TeX-PDF-mode t)  ;  will compile pdf by default.
+(setq TeX-auto-local (expand-file-name "~/.emacs.d/plugins/auctex/style-auto-parse/"))
+(setq TeX-auto-save t)
+(setq TeX-parse-self t)
+(setq TeX-display-help t)
+
+;; C-c =  runs reftex-toc the toc of my latex document
+(add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+(setq reftex-plug-into-AUCTeX t)
+;;    (global-set-key (kbd "C-=") 'reftex-toc)
+  #+END_SRC
+
+* Editer
+** Set emacs as EDITOR
+check https://github.com/magit/with-editor
+#+BEGIN_SRC emacs-lisp -i
+(define-key (current-global-map)
+  [remap async-shell-command] 'with-editor-async-shell-command)
+(define-key (current-global-map)
+  [remap shell-command] 'with-editor-shell-command)
+
+(add-hook 'shell-mode-hook  'with-editor-export-editor)
+(add-hook 'term-exec-hook   'with-editor-export-editor)
+(add-hook 'eshell-mode-hook 'with-editor-export-editor)
+#+END_SRC
+** Raccourcis clavier pour utf 8 
+   # http://ergoemacs.org/emacs/emacs_n_unicode.html
+   C-x 8 RET β
+
+   #+BEGIN_SRC emacs-lisp -i  
+;;(global-set-key (kbd "<f9> s-i") 'insert-char)
+(global-set-key (kbd "<f9> a") (kbd "α"))
+(global-set-key (kbd "<f9> b") (kbd "β"))
+					; (global-set-key (kbd "<f9> d") (kbd "≠"))
+(global-set-key (kbd "<f9> t") (kbd "∀"))
+
+;; (define-abbrev-table 'global-abbrev-table '(
+;;     ("alpha" "α")
+;;     ("neq" "≠")
+;;     ("forall" "∀")
+;;     ("indicator" "𝟙"))
+;;     )
+
+;; <-- BEST --> use Tex input method to  
+;; setinput method to latex with  C-\ ou C-<
+;; (global-set-input-method RET TeX)
+   #+END_SRC
+
+** Rename buffer
+
+   #+BEGIN_SRC emacs-lisp -i
+(defun rename-current-buffer-file ()
+  "Renames current buffer and file it is visiting."
+  (interactive)
+  (let ((name (buffer-name))
+	(filename (buffer-file-name)))
+    (if (not (and filename (file-exists-p filename)))
+	(error "Buffer '%s' is not visiting a file!" name)
+      (let ((new-name (read-file-name "New name: " filename)))
+	(if (get-buffer new-name)
+	    (error "A buffer named '%s' already exists!" new-name)
+	  (rename-file filename new-name 1)
+	  (rename-buffer new-name)
+	  (set-visited-file-name new-name)
+	  (set-buffer-modified-p nil)
+	  (message "File '%s' successfully renamed to '%s'"
+		   name (file-name-nondirectory new-name)))))))
+
+(global-set-key (kbd "C-x C-r") 'rename-current-buffer-file)
+
+   #+END_SRC
+
+** Multiple-cursors
+   https://github.com/magnars/multiple-cursors.el
+
+   #+BEGIN_SRC emacs-lisp -i
+;; (setq mc/always-run-for-all 1)
+;; (setq mc/cmds-to-run-for-all 1)
+(setq max-cusors 100)
+;; (setq mc/temporarily-disabled-minor-modes 1)
+;; (global-set-key (kbd "s--") nil)
+
+(global-set-key (kbd "s-* s-*") 'mc/mark-all-like-this)
+;; (global-set-key (kbd "s-* w") 'mc/mark-all-words-like-this)
+(global-set-key (kbd "s-* s") 'mc/mark-all-symbols-like-this)
+;; (global-set-key (kbd "s-- s--") 'mc/mark-previous-like-this)
+;; (global-set-key (kbd "s-- l") 'mc/mark-previous-lines)
+;; semble match obligatoirement un symbo
+;; (global-set-key (kbd "s-- s") 'mc/mark-previous-symbol-like-this)  
+;; (global-set-key (kbd "s-- w") 'mc/mark-previous-word-like-this)
+;; (global-set-key (kbd "s-- S") 'mc/mark-previous-like-this-symbol)
+;; (global-set-key (kbd "s-- W") 'mc/mark-previous-like-this-word)
+;; (global-set-key (kbd "s-- l") 'mc/mark-previous-lines)
+(global-set-key (kbd "s-= s-=") 'mc/mark-next-like-this)  ; playing the the + key
+;; (global-set-key (kbd "s-= l") 'mc/mark-next-lines)
+;; (global-set-key (kbd "s-= s") 'mc/mark-next-symbol-like-this)  ; semble match obligatoirement un symbol
+;; (global-set-key (kbd "s-= w") 'mc/mark-next-word-like-this)
+;; (global-set-key (kbd "s-= S") 'mc/mark-next-like-this-symbol)
+;; (global-set-key (kbd "s-= W") 'mc/mark-next-like-this-word)
+(global-set-key (kbd "s-SPC é") 'mc/edit-lines)  ; do this to edit
+(global-set-key (kbd "s-SPC h") 'mc/mark-sgml-tag-pair)  ; do this to edit
+(global-set-key (kbd "s-SPC i") 'mc/mark-all-like-this-dwim)  ;
+   #+END_SRC
+
+** wgrep
+   Writtable grep buffer
+https://github.com/mhayashi1120/Emacs-wgrep 
+
+** join line -1
+What is this for?
+   #+BEGIN_SRC emacs-lisp -i
+(global-set-key (kbd "M-j")
+		(lambda ()
+		  (interactive)
+		  (join-line -1)))
+   #+END_SRC
+** Custom functions
+#uniqify and count buffer lines from https://stackoverflow.com/questions/47659434/elisp-implementation-of-the-uniq-c-unix-command-to-count-unique-lines
+#+BEGIN_SRC emacs-lisp -i
+(defun uniq-c (beginning end)
+  "Like M-| uniq -c"
+  (interactive "r")
+  (let ((source (current-buffer))
+        (dest (generate-new-buffer "*uniq-c*"))
+        (case-fold-search nil))
+    (set-buffer dest)
+    (insert-buffer-substring source beginning end)
+    (goto-char (point-min))
+    (while (let* ((line (buffer-substring (line-beginning-position)
+                                          (line-end-position)))
+                  (pattern (concat "^" (regexp-quote line) "$"))
+                  (count (count-matches pattern (point) (point-max))))
+             (insert (format "%d " count))
+             (forward-line 1)
+             (flush-lines pattern)
+             (not (eobp))))
+    (pop-to-buffer dest)))
+#+END_SRC
+* Corriger                                                         
+** For emacs and latex 
+   https://piotr.is/2010/emacs-as-the-ultimate-latex-editor/
+** ispell
+   #+BEGIN_SRC emacs-lisp -i
+(global-set-key (kbd "s-i c") 'ispell-complete-word)
+(add-hook 'tex-mode-hook (function (lambda () (setq ispell-parser 'tex))))
+
+   #+END_SRC
+
+** Syntax checker
+*** Flycheck
+   read http://www.flycheck.org/en/latest/user/error-list.html
+
+   #+BEGIN_SRC emacs-lisp -i
+;; Active partout où c'est possible
+(global-flycheck-mode 1)
+;; keyboard shortcuts
+(global-set-key (kbd "s-c c") 'flycheck-buffer)
+(global-set-key (kbd "s-c n") 'flycheck-next-error)
+(global-set-key (kbd "s-c p") 'flycheck-previous-error)
+(global-set-key (kbd "s-c l") 'flycheck-list-errors)
+(global-set-key (kbd "s-c v") 'flycheck-verify-setup)
+(global-set-key (kbd "s-c V") 'flycheck-verify-checker)
+(global-set-key (kbd "s-c s") 'flycheck-select-checker)
+(global-set-key (kbd "s-c ?") 'flycheck-describe-checker)
+(global-set-key (kbd "s-c H") 'display-local-help)
+
+#+END_SRC
+**** COMMENT grammalect
+     #+BEGIN_SRC emacs-lisp
+       (with-eval-after-load 'flycheck
+	 (require 'flycheck-grammalecte)
+	 (setq flycheck-grammalecte-report-apos nil)  ; apostrophes
+	 (setq flycheck-grammalecte-report-nbsp nil)  ; non breaking spaces
+	 (setq flycheck-grammalecte-report-esp nil)  ; spaces erros
+	 (setq flycheck-grammalecte-enabled-modes '(text-mode markdown-mode mu4e-compose-mode message-mode fountain-mode))
+	 (flycheck-grammalecte-setup))
+
+       (global-set-key (kbd "s-g v") 'flycheck-grammalecte-conjugate-verb)
+       (global-set-key (kbd "s-g D") 'flycheck-grammalecte-define)
+       (global-set-key (kbd "s-g d") 'flycheck-grammalecte-define-at-point)
+       (global-set-key (kbd "s-g S") 'flycheck-grammalecte-find-synonyms)
+       (global-set-key (kbd "s-g s") 'flycheck-grammalecte-find-synonyms-at-point)
+       (global-set-key (kbd "s-g c") 'flycheck-grammalecte-correct-error-at-point)
+       (global-set-key (kbd "s-g u") 'flycheck-grammalecte-setup)
+
+       ;; https://git.deparis.io/flycheck-grammalecte/about/MANUAL_INSTALL.org
+       ;; (load-file "~/.emacs.d/flycheck-grammalecte/flycheck-grammalecte.elc")
+       ;; (flycheck-grammalecte-setup)
+     #+END_SRC
+**** Display the error list below
+     #+BEGIN_SRC emacs-lisp -i
+(add-to-list 'display-buffer-alist
+	     `(,(rx bos "*Flycheck errors*" eos)
+	       (display-buffer-reuse-window
+		display-buffer-in-side-window)
+	       (side            . bottom)
+	       (reusable-frames . visible)
+	       (window-height   . 0.33)))
+     #+END_SRC
+
+**** Python config
+I prefere to use per director config file
+
+     * `flycheck-flake8-error-level-alist'
+     * `flycheck-flake8-maximum-complexity'
+     * `flycheck-flake8-maximum-line-length'
+
+     M-x flycheck-error-list-set-filter
+
+     #+BEGIN_SRC emacs-lisp -i
+
+(setq-default flycheck-disabled-checkers
+(append flycheck-disabled-checkers
+'( python-pycompile)))
+     #+END_SRC
+
+**** Javascript et dérivés
+
+     #+BEGIN_SRC emacs-lisp -i  
+(add-hook 'js-mode-hook
+	  (lambda () (flycheck-mode t)))
+
+;; (add-hook 'web-mode-hook
+;;           (lambda () (flycheck-mode t)))
+
+(add-hook 'web-mode-hook #'global-flycheck-mode)
+
+(flycheck-add-mode 'javascript-eslint 'web-mode)
+     #+END_SRC
+
+*** COMMENT Prettier
+check that npm install -g prettier 
+https://github.com/prettier/prettier-emacs (see packages too)
+#+BEGIN_SRC emacs-lisp  
+(add-hook 'web-mode-hook #'prettier-js-mode)
+#+END_SRC
+
+*** Flyspell
+ #+BEGIN_SRC emacs-lisp  -i
+(global-set-key (kbd "C-c !") 'org-time-stamp-inactive) ; ??
+
+(global-set-key (kbd "s-s f") 'flyspell-mode)
+(global-set-key (kbd "s-s e") 'flyspell-list-errors)
+(global-set-key (kbd "s-s n") 'flyspell-next-error)
+(global-set-key (kbd "s-s p") 'flyspell-previous-error)
+
+    #+END_SRC
+
+* Courrier (Mail Stuff)
+
+** Général / generic mail stuff
+   #+BEGIN_SRC emacs-lisp -i
+;; identité par défaut
+;; (setq user-mail-address "malikykone@gmail.com"
+;; 	user-full-name "Malik Koné"
+;; 	smtpmail-smtp-server "smtp.gmail.com"
+;; 	smtpmail-stream-type 'starttls
+;; 	smtpmail-smtp-service 587)
+
+(setq user-mail-address "malik@kone.ci"
+      user-full-name "Malik Koné"
+      smtpmail-smtp-user "malik@kone.ci"
+      smtpmail-smtp-server "smtp.kone.ci"
+      smtpmail-auth-credentials (expand-file-name "~/.authinfo.gpg")
+      smtpmail-stream-type 'starttls
+      smtpmail-smtp-service 587
+      mu4e-compose-signature "Malik Koné,
+    +33 753 688 960 / +225 84 00 60 02
+    Doctorant en Learning Analytics,
+    LIUM (Le Mans) & l'INP-HB (Yamoussoukro)")
+
+;; smtp params par défaut
+(setq mail-user-agent 'message-user-agent
+      message-send-mail-function 'message-smtpmail-send-it
+      smtpmail-debug-info t       ;; report problems with the smtp server
+      message-default-mail-headers "Cc: \nBcc: \n"
+      message-auto-save-directory "~/Maildir/Drafts"
+      message-directory "~/Maildir/Sent"
+      message-kill-buffer-on-exit t)
+   #+END_SRC
+
+** mu4e
+may need to index the mail
+mu index -m ~/.mbsync
+   #+BEGIN_SRC emacs-lisp -i
+(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
+
+;; generalité
+(setq mu4e-maildir       "~/.mbsync"   ;; top-level Maildir
+      mu4e-sent-folder   "/Sent"       ;; folder for sent messages
+      mu4e-drafts-folder "/Drafts"     ;; unfinished messages
+      mu4e-trash-folder  "/Trash"      ;; trashed messages
+      mu4e-refile-folder "/Archive"   ;; saved messages
+      mu4e-get-mail-command "mbsync mails"   ;;
+      mu4e-update-interval nil        ;; update chaque heure nil pour annuler automation
+      mu4e-view-show-addresses t
+      mu4e-sent-messages-behavior 'sent   ;; where to when sent or 'trash or 'delete
+      mu4e-change-filenames-when-moving t  ;; check this
+      ;; mu4e-html2text-command "html2text"  ;; depreciated
+      ;; mu4e-html2text-command "iconv -t utf-8 | pandoc -t plain -f html --wrap=none"
+      mu4e-attachement-dir "~/.mbsync/PJ"
+      mu4e-view-show-images nil)
+
+(setq  mu4e-maildir-shortcuts '(("/etu/Inbox"     . ?i)
+				("/mkone/Inbox"     . ?m)
+				("/mlf/Inbox"     . ?f)
+				("/uvci/Inbox"     . ?u)
+				("/gmlk/Inbox"     . ?g)
+				("/Sent"     . ?s)))
+   #+END_SRC
+*** Shortcuts
+    #+BEGIN_SRC emacs-lisp -i  
+(key-chord-define-global "m&" 'mu4e)
+(key-chord-define-global "&c" 'mu4e-compose-new)
+(key-chord-define-global "&=" 'mu4e-view-headers-next-unread)
+(key-chord-define-global "&-" 'mu4e-view-header-previous-unread)
+    #+END_SRC
+
+*** bookmarks and search
+    Ajouter un raccourcis pour les attachements du mois
+
+    #+BEGIN_SRC emacs-lisp -i
+(setq me "(from:utope.spiro OR from:malik)")
+(setq notme (format "NOT %s" me))
+(setq mu4e-bookmarks
+      `(("flag:unread AND NOT flag:trashed" "Unread messages" ?u)
+	(,(format "date:today..now AND %s" notme) "received today" ?t)
+	;;	      ("date:today..now" "All today's messages" ?o)
+	(,(format "date:1d..now AND NOT flag:trashed AND %s" notme) "arrivés hier et aujourd'hui" ?h)
+	(,(format "date:7d..now AND NOT flag:trashed AND %s" notme) "received last 7 days" ?7)
+	(,(format "date:2m..now AND NOT flag:trashed AND %s" notme) "received last 2 months" ?m)
+					;     ("mime:image/* AND NOT Maildir:/Sent" "Messages with images" ?p)
+	("flag:flagged" "flagged message" ?f)
+	(,(format "NOT Maildir:/gmlk/all AND NOT Maildir:/Sent  AND NOT flag:trashed AND %s" me) "Sent messages" ?S)
+	(,(format "date:2m..now NOT Maildir:/gmlk/all AND NOT Maildir:/Sent  AND NOT flag:trashed AND %s" me) "Sent messages dans les 2 mois" ?s)
+	(,(format "NOT flag:trashed AND %s" notme) "Tous messages reçus (lu ou pas)" ?i)))
+    #+END_SRC
+
+
+*** Integration with org-mode
+    #+BEGIN_SRC emacs-lisp -i
+(require 'org-mu4e)        ;;store org-mode links to messages
+;; (org-mu4e-store-link)
+;; (key-chord-define-global "&l" 'org-mu4e-store-link)
+(key-chord-define-global "&i" 'org-insert-last-stored-link)
+;; (setq org-mu4e-link-query-in-headers-mode nil)
+    #+END_SRC
+
+*** headers and headers views
+    #+BEGIN_SRC emacs-lisp -i
+(setq mu4e-headers-date-format "%x" ;; defaut "%x"
+      mu4e-headers-results-limit 1000
+      mu4e-headers-skip-duplicates t
+      mu4e-headers-visible-lines 15
+      mu4e-headers-fields  '((:human-date . 12) (:flags . 6) (:from-or-to . 30) (:subject))
+      mu4e-user-mail-address-list '("malikykone@gmail.com" "malik@kone.ci" "malik.kone.etu@univ-lemans.fr" "utope.spiro@gmail.com" "malik.kone@mlfmonde.org"))
+
+;; hooking to the header-view
+(add-hook 'mu4e-headers-found-hook 'set-font-mono)
+
+    #+END_SRC
+
+*** messages
+    #+BEGIN_SRC emacs-lisp -i
+;; message signature
+(setq mu4e-compose-signature-auto-include t
+      mu4e-compose-signature "Malik Koné,
+    Doctorant en Learning Analytics,
+    LIUM (Le Mans) & l'INP-HB (Yamoussoukro)
+    +33 753 688 960 / +225 84 00 60 02"
+      )
+
+(add-hook 'mu4e-view-mode-hook
+	  (defun my-do-view-stuff ()
+	    "My settings for message view."
+	    (set-fill-column 80))) ; C-x f
+
+(add-hook 'mu4e-view-mode-hook 'set-font-mono)
+    #+END_SRC
+
+*** multiple accounts in mu4e
+    Régler le pb de serveur smtp pour l'envois utope et mlf
+    #+BEGIN_SRC emacs-lisp -i
+(setq mlk-signature "Malik Koné, %s
+    +33 753 688 960 / +225 84 00 60 02"
+      mlk-doc "%s
+    Doctorant en Learning Analytics,
+    LIUM (Le Mans) & l'INP-HB (Yamoussoukro)"
+      mlk-prof (format mlk-doc "%s
+    Professeur de Mathématique et d'informatique"))
+
+;; (mu4e-compose-signature (format mlk-signature mlk-doc "")))
+;;      (format mlk-signature mlk-prof "")  ;; test
+
+;; doing stuff for changing smtp automaticaly
+(defvar my-mu4e-account-alist
+  '(
+    ("gmlk" 
+     (user-mail-address "malikykone@gmail.com")
+     (smtpmail-smtp-user "malikykone")
+     (smtpmail-smtp-server "smtp.gmail.com")
+     (smtpmail-starttls-credentials ())
+     (smtpmail-auth-credentials (expand-file-name "~/.authinfo.gpg"))
+     (smtpmail-stream-type starttls)
+     (smtpmail-smtp-service 587)
+     (mu4e-compose-signature "Malik Koné, +33 753 688 960 / +225 84 00 60 02 Doctorant en Learning Analytics, LIUM (Le Mans) & l'INP-HB (Yamoussoukro)"))
+
+    ("mlf" 
+     (user-mail-address "malik.kone@mlfmonde.org")
+     (smtpmail-smtp-user "malik.kone")
+     (smtpmail-smtp-server "smtp.mlfmonde.org")
+     (smtpmail-starttls-credentials ())
+     (smtpmail-auth-credentials (expand-file-name "~/.authinfo.gpg"))
+     (smtpmail-stream-type starttls)
+     (smtpmail-smtp-service 587)
+     (mu4e-compose-signature "Malik Koné, 
+    +33 753 688 960 / +225 84 00 60 02
+    Doctorant en Learning Analytics,
+    LIUM (Le Mans) & l'INP-HB (Yamoussoukro)"))
+
+    ("etu"  
+     (user-mail-address "malik.kone.etu@univ-lemans.fr")
+     (smtpmail-smtp-user "s176329")
+     (smtpmail-smtp-server "smtp.univ-lemans.fr")
+     (smtpmail-auth-credentials (expand-file-name "~/.authinfo.gpg"))
+     (smtpmail-stream-type starttls)
+     (smtpmail-smtp-service 587)
+     (mu4e-compose-signature "Malik Koné,
+    +33 753 688 960 / +225 84 00 60 02
+    Doctorant en Learning Analytics,
+    LIUM (Le Mans) & l'INP-HB (Yamoussoukro)"))
+
+
+    ("mkone" 
+     (user-mail-address "malik@kone.ci")
+     (smtpmail-smtp-user "malik@kone.ci")
+     (smtpmail-smtp-server "smtp.kone.ci")
+     (smtpmail-auth-credentials (expand-file-name "~/.authinfo.gpg"))
+     (smtpmail-stream-type starttls)
+     (smtpmail-smtp-service 587)
+     (mu4e-compose-signature "Malik Koné,
+    +33 753 688 960 / +225 84 00 60 02
+    Doctorant en Learning Analytics,
+    LIUM (Le Mans) & l'INP-HB (Yamoussoukro)"))))
+
+
+;; function to switch account
+(defun my-mu4e-set-account ()
+  "Set the account for composing a message."
+  (let* ((account
+	  (if mu4e-compose-parent-message
+	      (let ((maildir (mu4e-message-field mu4e-compose-parent-message :maildir)))
+		(string-match "/\\(.*?\\)/" maildir)
+		(match-string 1 maildir))
+	    (completing-read (format "Compose with account: (%s) "
+				     (mapconcat #'(lambda (var) (car var))
+						my-mu4e-account-alist "/"))
+			     (mapcar #'(lambda (var) (car var)) my-mu4e-account-alist)
+			     nil t nil nil (caar my-mu4e-account-alist))))
+	 (account-vars (cdr (assoc account my-mu4e-account-alist))))
+    (if account-vars
+	(mapc #'(lambda (var)
+		  (set (car var) (cadr var)))
+	      account-vars)
+      (error "No email account found"))))
+
+;; hooking set-account
+(add-hook 'mu4e-compose-pre-hook 'my-mu4e-set-account)
+
+    #+END_SRC
+
+*** Contacts
+    #+BEGIN_SRC emacs-lisp -i  
+;; (setq mu4e-org-contacts-file  "~/Documents/Communications/contats.org")
+;; (add-to-list 'mu4e-headers-actions
+;; 	     '("org-contact-add" . mu4e-action-add-org-contact) t)
+;; (add-to-list 'mu4e-view-actions
+;; 	     '("org-contact-add" . mu4e-action-add-org-contact) t)
+
+    #+END_SRC
+** COMMENT html-mails
+   check http://kitchingroup.cheme.cmu.edu/blog/2016/10/29/Sending-html-emails-from-org-mode-with-org-mime/
+   https://vxlabs.com/tag/mu4e/
+   http://pragmaticemacs.com/emacs/master-your-inbox-with-mu4e-and-org-mode/
+   à revoir
+   #+BEGIN_SRC emacs-lisp -i
+;; (setq org-mu4e-convert-to-html t)
+
+(defun htmlize-and-send ()
+  "When in an org-mu4e-compose-org-mode message, htmlize and send it."
+  (interactive)
+  (when (member 'org~mu4e-mime-switch-headers-or-body post-command-hook)
+    (org-mime-htmlize)
+    (org-mu4e-compose-org-mode)
+    (mu4e-compose-mode)
+    (message-send-and-exit)))
+   #+END_SRC
+
+* Présenter  / Afficher
+** Origami.. play with folding
+n'arrive pas à le faire fonctioner correctement.
+#+BEGIN_SRC emacs-lisp -i
+(require 'origami)
+
+(use-package origami
+  :after web-mode
+  :bind (:map web-mode-map
+	 ("s-SPC SPC" . origami-recursively-toggle-node)
+	 ("s-SPC A" . origami-open-all-nodes)
+	 ("s-SPC E" . origami-open-node)
+	 ("s-SPC T" . origami-open-node-recursively)
+	 ("s-SPC e" . origami-close-node)
+	 ("s-SPC s" . origami-close-node-recursively)
+	 ("s-SPC a" . origami-close-all-nodes)
+	 ("s-SPC o" . origami-show-only-node)
+	 ("s-SPC f" . origami-forward-fold)
+	 ("s-SPC F" . origami-forward-fold-same-level)
+	 ("s-f" . origami-forward-fold)
+	 ("s-SPC b" . origami-backward-fold)
+	 ("s-b" . origami-backward-fold)
+	 ("s-SPC o" . origami-show-only-node)
+	 ("s-SPC u" . origami-undo)
+	 ("s-SPC r" . origami-redo)
+	 )
+  )
+(use-package origami
+  :after tex-mode
+  :bind (:map tex-mode-map
+	 ("s-SPC SPC" . origami-recursively-toggle-node)
+	 ("s-SPC A" . origami-open-all-nodes)
+	 ("s-SPC E" . origami-open-node)
+	 ("s-SPC T" . origami-open-node-recursively)
+	 ("s-SPC e" . origami-close-node)
+	 ("s-SPC s" . origami-close-node-recursively)
+	 ("s-SPC a" . origami-close-all-nodes)
+	 ("s-SPC o" . origami-show-only-node)
+	 ("s-SPC f" . origami-forward-fold)
+	 ("s-SPC F" . origami-forward-fold-same-level)
+	 ("s-j" . origami-forward-fold)
+	 ("s-SPC b" . origami-backward-fold)
+	 ("s-m" . origami-backward-fold)
+	 ("s-SPC o" . origami-show-only-node)
+	 ("s-SPC u" . origami-undo)
+	 ("s-SPC r" . origami-redo)
+	 )
+  )
+
+(use-package origami
+  :after json-mode
+  :bind (:map json-mode-map
+	 ("s-SPC SPC" . origami-recursively-toggle-node)
+	 ("s-SPC A" . origami-open-all-nodes)
+	 ("s-SPC E" . origami-open-node)
+	 ("s-SPC T" . origami-open-node-recursively)
+	 ("s-SPC e" . origami-close-node)
+	 ("s-SPC s" . origami-close-node-recursively)
+	 ("s-SPC a" . origami-close-all-nodes)
+	 ("s-SPC o" . origami-show-only-node)
+	 ("s-SPC f" . origami-forward-fold)
+	 ("s-SPC F" . origami-forward-fold-same-level)
+	 ("s-n" . origami-forward-fold-same-level)
+	 ("s-SPC b" . origami-backward-fold)
+	 ("s-SPC B" . origami-backward-fold-same-level)
+	 ("s-p" . origami-backward-fold-same-level)
+	 ("s-SPC o" . origami-show-only-node)
+	 ("s-SPC u" . origami-undo)
+	 ("s-SPC r" . origami-redo)
+	 )
+  )
+
+#+END_SRC
+** Aggressive-indent
+   Très agressif et en python c'est chiant
+#    #+BEGIN_SRC emacs-lisp -i
+# ;; decomment when ready
+# ;; (add-hook 'emacs-lisp-mode-hook #'aggressive-indent-mode)
+# ;; (add-hook 'css-mode-hook #'aggressive-indent-mode)
+# ;; (global-aggressive-indent-mode 1)
+# ;; (add-to-list 'aggressive-indent-excluded-modes 'html-mode 'ein:ml-mode)
+
+#    #+END_SRC
+
+** electric-pair mode
+   #+BEGIN_SRC emacs-lisp -i
+    ;;;; for all text modes
+    ;;;; get problem with org export saying text mode does not support hideshow mode
+;; (add-hook 'text-mode-hook 'hs-minor-mode)
+(electric-pair-mode 1)
+(add-hook 'emacs-lisp-mode-hook 'eldoc-mode)
+   #+END_SRC
+
+** Web-beautify
+   https://github.com/yasuyk/web-beautify
+
+   #+BEGIN_SRC emacs-lisp -i
+
+;; web-beautify
+(eval-after-load 'js2-mode
+  '(define-key js2-mode-map (kbd "C-c b") 'web-beautify-js))
+(eval-after-load 'json-mode
+  '(define-key json-mode-map (kbd "C-c b") 'web-beautify-js))
+(eval-after-load 'sgml-mode
+  '(define-key html-mode-map (kbd "C-c b") 'web-beautify-html))
+(eval-after-load 'css-mode
+  '(define-key css-mode-map (kbd "C-c b") 'web-beautify-css))
+
+   #+END_SRC
+** Whitewspace-minor-mode
+   Un mode pour afficher les chars invisibles
+   #+BEGIN_SRC emacs-lisp -i
+(key-chord-define-global "&w" 'whitespace-mode)
+   #+END_SRC
+
+** Outline-mode
+   #+BEGIN_SRC emacs-lisp -i
+(use-package outline
+  ;;       :ensure t
+  :bind (
+	 ("s-SPC O" . outline-minor-mode)
+	 :map outline-minor-mode-map
+	 ;; ("s-SPC O" . outline-minor-mode)
+	 ("s-j" . outline-backward-same-level)
+	 ("s-k" . outline-forward-same-level)
+	 ;; ("s-SPC N" . outline-next-heading)
+	 ;; ("s-SPC P" . outline-previous-heading)
+	 ("s-f" . outline-next-visible-heading)
+	 ("s-b" . outline-previous-visible-heading)
+	 ("s-SPC $" . outline-move-subtree-up)
+	 ("s-SPC v" . outline-move-subtree-down)
+	 ("s-SPC <" . outline-promote)
+	 ("s-SPC >" . outline-demote)
+	 ("s-SPC RET" . outline-insert-heading)
+	 ("s-SPC m" . outline-mark-subtree)
+	 ("s-SPC u " . outline-up-heading)
+	 ;;	     ("s-SPC S" . outline-sticky)
+	 ("s-SPC c" . outline-toggle-children)
+	 ("s-SPC A" . outline-show-all)
+	 ("s-SPC E" . outline-show-entry)
+	 ("s-SPC T" . outline-show-subtree)
+	 ("s-SPC H" . outline-show-children)
+	 ("s-SPC B" . outline-show-branches)
+	 ("s-SPC y" . outline-hide-body)
+	 ("s-SPC e" . outline-hide-entry)
+	 ("s-SPC s" . outline-hide-subtree)
+	 ("s-SPC l" . outline-hide-leaves)
+	 ("s-SPC o" . outline-hide-other)
+	 ("s-SPC t" . outline-hide-sublevels)
+	 )
+  )
+   #+END_SRC
+
+*** Bycycle-mode
+    https://github.com/tarsius/bicycle
+    Jonas Bernoulli
+    jonas@bernoul.li
+
+    #+BEGIN_SRC emacs-lisp -i  
+(use-package bicycle
+  :after outline
+  :bind (:map outline-minor-mode-map
+	      ("s-c s-b" . bicycle-cycle-global)
+	      ("s-c s-c" . bicycle-cycle)
+	      )
+  )
+    #+END_SRC
+
+* Coder -- Programmer
+
+** Web-mode
+
+   <2019-05-16 jeu.> installed web-mode
+
+   check http://web-mode.org/ bien fait
+
+   #+BEGIN_SRC emacs-lisp -i 
+(add-to-list 'auto-mode-alist '("\\.jsx?$" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.json$" . web-mode))
+
+;;highlighting
+(setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'")))
+
+;; indentation
+(defun web-mode-init-hook ()
+  "Hooks for Web mode. Adjust indent."
+  (setq web-mode-markup-indent-offset 4))
+
+;; eslint
+(setq-default flycheck-disabled-checkers
+(append flycheck-disabled-checkers
+'(javascript-jshit json-jsonlist)))
+;; prettier stuff
+(defun web-mode-init-prettier-hook ()
+  (add-node-modules-path)  ;; is it really needed because node stuff in yarn ???
+  (prettier-js-mode))
+
+(add-hook 'web-mode-hook 'web-mode-init-hook)
+(add-hook 'web-mode-hook 'web-mode-init-prettier-hook)
+(add-hook 'web-mode-hook 'origami-mode)
+   #+END_SRC
+**** COMMENT temp
+    #+BEGIN_SRC emacs-lisp -i  
+(use-package web-mode
+  :defer 2
+  ;;  :after (add-node-modules-path)  ; should not need if env var passed to emacs
+  :ensure t
+  ;; (:map web-mode
+  ;; 	("C-n" . web-mode-tag-match))
+  :mode ("\\.html?\\'"
+	 "\\.js[x]?\\'")
+  :bind (:map web-mode
+	      ("C-n" . web-mode-tag-match))
+  :config (progn
+	    (setq
+	     web-mode-markup-indent-offset 2
+	     web-mode-css-indent-offset 2
+	     web-mode-code-indent-offset 2
+	     web-mode-enable-auto-closing t
+	     web-mode-enable-auto-opening t
+	     web-mode-enable-auto-pairing t
+	     web-mode-enable-auto-indentation t
+	     web-mode-enable-auto-quoting t
+	     web-mode-enable-current-column-highlight t
+	     web-mode-enable-current-element-highlight t
+	     web-mode-content-types-alist '(("jsx" . ".*\\.js[x]?\\'"))
+	     ;; web-mode-engines-alist '(("jsx" . ".*\\.js[x]?\\'"))	     
+	     )
+	    (add-to-list 'auto-mode-alist '("\\.jsx?\\'" . web-mode))
+	    ;; short circuit js mode and just do everything in jsx-mode
+	    (lambda ()
+	      (if (equal web-mode-content-type "javascript")
+		  (web-mode-set-content-type "jsx")
+		(message "now set to: %s" web-mode-content-type)))))
+
+;; Disable the default jslint
+(setq-default flycheck-disabled-checkers
+              (append flycheck-disabled-checkers
+                      '(javascript-jshint json-jsonlist)))
+
+;; Enable eslint checker for web-mode
+(flycheck-add-mode 'javascript-eslint 'web-mode)
+
+;; Enable flycheck globally
+;; #'functionname is a shortcut for (function functionname)
+;; (add-hook 'after-init-hook #'global-flycheck-mode)
+
+;; (add-hook 'web-mode-hook
+;; 	  (lambda ()
+
+;; 	    ;; short circuit js mode and just do everything in jsx-mode
+;; 	    (if (equal web-mode-content-type "javascript")
+;; 		(web-mode-set-content-type "jsx")
+;; 	      (message "now set to: %s" web-mode-content-type))))
+    #+END_SRC
+
+
+*** Php
+    voir php-manual-path pour la doc locale (c-c c-f)
+    https://github.com/emacs-php/php-mode
+    php-enable-default-coding-style
+
+
+    #+BEGIN_SRC emacs-lisp -i  
+
+;; (php-enable-default-coding-style)
+;; (php-enable-default-coding-style)
+;; (php-enable-wordpress-coding-style t)
+;; 
+;; (add-hook 'php-mode-hook 'php-enable-default-coding-style)
+;; (setq php-manual-path "/home/mlkbk/Prog/PHP/")
+;; (setq php-manual-path "/home/mlkbk/Prog/PHP/php-chunked-xhtml/")
+
+    #+END_SRC
+** Python Stuff
+*** Black formatter
+    #+BEGIN_SRC emacs-lisp -i  
+(use-package python-black
+  :demand t
+  :mode ("\\.py\\'" . python-mode)
+  :bind (:map python-mode-map
+	      ("s-b s" . python-black-on-save-mode)
+	      ;; ("s-c b" . python-black-buffer)
+	      ("s-c b" . blacken-buffer)
+	      )
+  )
+
+;; utilise .dir-locals si besoin de plus de config
+(setq python-black-on-save-mode nil)
+;; (setq python-black-command "/home/mlkbk/.local/bin/black")
+;; python-black-macchiato-command
+;; python-black-extra-args
+
+    #+END_SRC
+    ou blacken (déjà installé)
+    #+BEGIN_SRC elisp 
+      ;; Add blacken.el to your load-path.
+      ;;
+      ;; To automatically format all Python buffers before saving, add the
+      ;; function blacken-mode to python-mode-hook:
+      ;;
+      ;; (add-hook 'python-mode-hook 'blacken-mode)
+      ;;
+    #+END_SRC
+*** EIN-mode
+
+    #+BEGIN_SRC emacs-lisp -i
+
+;; choix du moteur pour ein python
+;; python 3.8 (mais sans graph-tool) à installer <2020-02-01 sam.>
+
+(setq ein:jupyter-default-server-command "/home/mlkbk/.pyenv/shims/jupyter")
+
+;; disable the browser lauch
+(setq ein:jupyter-server-args (list  "--no-browser"))
+(setq ein:notebook-disable-autosaves t)
+(setq ein:worksheet-enable-undo 'yes)
+
+    ;;;; keyboard shortcuts pour EIN mode
+(global-set-key (kbd "C-c e p") 'ein:jupyter-server-stop)
+(global-set-key (kbd "C-c e r") 'ein:jupyter-server-start)
+(global-set-key (kbd "C-c M-d") 'ein:worksheet-delete-cell)
+;;(global-set-key (kbd "C-c M-l") 'ein:org-store-link)
+
+    #+END_SRC
+
+**** update <2020-04-11 sam.>
+ https://github.com/millejoh/emacs-ipython-notebook
+
+ - inline :: images 
+ M-x customize-group RET ein
+ Ein:Output Area Inlined Images
+
+ - external viewer 
+ M-x customize-group RET mailcap
+ Mailcap User Mime Data
+
+
+*** Python-mode
+    using ipython most of the time.  need to make the diff clear
+    https://gitlab.com/python-mode-devs/python-mode/issues
+
+    #+BEGIN_SRC emacs-lisp -i
+;; (add-to-list ‘load-path py-install-directory)
+(add-hook 'python-mode-hook 'outline-minor-mode)
+
+;; (setq py-install-directorby  "/home/mlkbk/.local/share/virtualenvs/Python--sNkv1kf/bin/python")
+;; (setq py-install-directory  "/home/mlkbk/.local/share/virtualenvs/Python--sNkv1kf/bin/")
+;; (use-package python-mode
+;; ;;      :ensure t
+;; :bind (:map python-mode-map
+;; ("C-c h" . helm-execute-persistent-action))))
+    #+END_SRC
+
+*** COMMENT python-django-mode
+    https://github.com/fgallina/python-django.el
+    http://web.archive.org/web/20131010005338/http://from-the-cloud.com/en/emacs/2013/01/28_emacs-as-a-django-ide-with-python-djangoel.html
+    #+BEGIN_SRC emacs-lisp -i  
+(use-package python-django
+  :bind (("C-x j" . 'python-django-open-project)))
+
+;; use m or h to see commands, # $ k K to handle process
+    #+END_SRC
+
+** Javascript
+   Voir https://truongtx.me/2014/04/20/emacs-javascript-completion-and-refactoring for autocompletion
+
+*** Typescript
+    installed typescript-mode check [[https://github.com/emacs-typescript/typescript.el][git]]
+
+*** +jsx (react)+ pas nécessaire avec babel
+
+    check readme https://github.com/felipeochoa/rjsx-mode
+
+    #+BEGIN_SRC emacs-lisp -i  
+;; optionnal
+;; (add-to-list 'auto-mode-alist '("components\\/.*\\.js\\'" . rjsx-mode))
+;; C-c C-r, rename closing tag
+
+;; to disable some behaviors
+;; (with-eval-after-load 'rjsx-mode
+;;   (define-key rjsx-mode-map "<" nil)
+;;   (define-key rjsx-mode-map (kbd "C-d") nil)
+;;   (define-key rjsx-mode-map ">" nil))
+
+;; ;; (setq web-mode-enable-auto-pairing t)
+    #+END_SRC
+
+*** js2-mode
+    see https://emacs.cafe/emacs/javascript/setup/2017/04/23/emacs-setup-javascript.html
+    #+BEGIN_SRC emacs-lisp -i
+(use-package js2-mode
+  :bind (:map js2-mode-map
+	      ("s-j e" . js2-mode-toggle-element)
+	      ("s-j f" . js2-mode-toggle-hide-functions)
+	      ("s-j c" . js2-mode-toggle-hide-comments)
+	      ("s-j A" . js2-mode-show-all)
+	      ("s-j a" . js2-mode-hide-functions)
+	      ("s-j h" . js2-mode-hide-element)
+	      ("s-j t" . js2-mode-hide-comments)
+	      ("s-j w" . js2-mode-hide-warnings-and-errors)
+	      ("s-j n" . js2-mode-forward-sexp-parens)
+	      ("s-j s" . js2-mode-forward-sibling)
+	      ("s-j d" . js2-mode-function-at-point)
+	      )
+  ;; :mode ("\\.js\\'" . js2-mode)
+  )
+
+;; gestion du code folding
+(add-hook 'js2-mode-hook 'outline-minor-mode)
+
+;; Better imenu
+;; (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+
+    #+END_SRC
+*** COMMENT complément js2-refactor et xref
+    https://github.com/NicolasPetton/xref-js2 (nicola putton)
+    #+BEGIN_SRC emacs-lisp -i  
+(require 'js2-refactor)
+
+(add-hook 'js2-mode-hook #'js2-refactor-mode)
+(js2r-add-keybindings-with-prefix "C-c C-r")
+(define-key js2-mode-map (kbd "s-k k") #'js2r-kill)
+
+;; js-mode (which js2 is based on) binds "M-." which conflicts with xref, so
+;; unbind it.
+(define-key js-mode-map (kbd "M-.") nil)
+
+(add-hook 'js2-mode-hook (lambda ()
+			   (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t)))
+    #+END_SRC
+
+    raccourcis de xref
+    M-. Jump to definition
+    M-? Jump to references
+    M-, Pop back to where M-. was last invoked.
+
+*** Indium
+    see https://indium.readthedocs.io/en/latest/setup.html
+    https://github.com/NicolasPetton/indium
+    Websocket is installed,
+    dependencies to chrome and nodes are satisfied mais ne fonction pas bien 
+    <2019-06-01 sam.>
+    https://github.com/purcell/exec-path-from-shell
+
+    #+BEGIN_SRC emacs-lisp -i
+(use-package indium
+  :bind (:map js2-mode-map
+	      ("s-\ c" . indium-connect)
+	      ("s-\ l" . indium-lauch))
+  )
+
+;; (global-set-key (kbd "s-\" c") 'indium-connect)
+;; (global-set-key (kbd "s-\" l") 'indium-launch)
+
+    #+END_SRC
+
+** SQL
+format-sql
+https://github.com/paetzke/format-sql.el
+#+BEGIN_SRC emacs-lisp -i
+(global-set-key (kbd "s-s s-s") 'format-sql-buffer)
+#+END_SRC
+* Organiser (org-Mode)
+  #+BEGIN_SRC emacs-lisp -i
+(require 'org-mime)
+
+(add-hook 'org-mode-hook 'set-font-mono)
+;;une fonction pour ??
+(defun org-show-current-heading-tidily ()
+  (interactive)
+  "Show next entry, keeping other entries closed."
+  (if (save-excursion (end-of-line) (outline-invisible-p))
+      (progn (org-show-entry) (show-children))
+    (outline-back-to-heading)
+    (unless (and (bolp) (org-on-heading-p))
+      (org-up-heading-safe)
+      (hide-subtree)
+      (error "Boundary reached"))
+    (org-overview)
+    (org-reveal t)
+    (org-show-entry)
+    (show-children)))
+
+(global-set-key (kbd "s-o n") 'org-narrow-to-subtree)
+(global-set-key (kbd "s-o l") 'widen)
+;; changed from default à cause de flycheck
+(global-set-key (kbd "s-o !") 'org-time-stamp-inactive)
+;; Definie une fonction qui remplace automatiquement des command latex \textasciitilde avec des char ~
+;; mais il faut vérifier les \ dans l'expression régulière
+;; (defun mlk-latex-filter-nobreaks (text backend info) "Ensure \"~\"
+;;   are properly handled in LaTeX export."  (when
+;;   (org-export-derived-backend-p backend 'latex)
+;;   (replace-regexp-in-string "\\textasciitilde{}" "~" text)))
+;;   (add-to-list 'org-export-filter-plain-text-functions
+;;   'my-latex-filter-nobreaks)
+
+#+END_SRC
+
+** Capture
+   #+BEGIN_SRC emacs-lisp -i
+(global-set-key (kbd "C-c C-s") 'org-store-link)  ; override schedule that I dont use, 
+(global-set-key (kbd "s-o s-l") 'org-store-link)  ; override schedule that I dont use, 
+(global-set-key (kbd "C-c C-l") 'org-store-link)  ; override schedule that I dont use, 
+(key-chord-define-global "&l" 'org-store-link)
+(key-chord-define-global "&i" 'org-insert-last-stored-link)
+(global-set-key (kbd "s-o s-i") 'org-insert-last-stored-link)
+
+
+;; faire ensuite C-c C-l ou C-c M-l
+
+(global-set-key (kbd "s-o c") 'org-capture)
+(global-set-key (kbd "s-o w") 'org-capture-refile)  ; goes to a different file
+
+;; set the default file for org capture. used if templates do not specify others
+(setq org-directory ".Org/")  ;; note org-directory is set to ~/org
+(setq org-default-notes-file (concat org-directory "capture_notes.org"))
+(setq org-capture-escaped-% 1)
+
+(setq default-todo (concat "* TODO %?\nDEADLINE: "
+			   (format-time-string "[%Y-%m-%d %H:%M]" (time-add (* 7 24 60 60)  nil))
+			   "\n:PROPERTIES:\n:Effort: 00:  \n:END:\n%U depuis %a\n\n"))
+
+(defun mlk_prop (LIST)
+  "Créer une (as LIST) de mots clef pour le tiroir properties.  LIST est une liste de mots clef."
+  (let (value)
+    (dolist (elt LIST value)
+      (setq value (concat value (format ":%s  \n" elt))))
+    (format ":PROPERTIES:\n%s:END:\n" value)))
+
+;; set the templates
+(setq org-capture-templates
+      `(("a" "articles review" entry (file+olp "~/These/articles.org" "En vrac")
+	 ,(concat "* %?\n" (mlk_prop '(Keywords: Journal: Authors: Year:)) "%U depuis %a \n** Abstract \n \n** Bibliographie\n %i \n\n") :empty-lines-after 1)
+	("i" "Idées/Questions" entry (file+olp "~/These/notes.org" "Questions")
+	 "* %? ?\n%U %a \n" :prepend 1 :empty-lines-after 1)
+	("j" "Journal" entry (file+olp+datetree "~/These/notes.org" "Journal")
+	 "* %? %U \n\n " :empty-lines-after 1)
+	("J" "Journal with attachement" entry (file+olp+datetree "~/These/notes.org" "Journal")
+	 "* %? %U depuis %a \n\n " :empty-lines-after 1)
+	("p" "Peoples" entry (file+olp "~/These/notes.org" "Peoples")
+	 ,(concat "* %?\n" (mlk_prop '(Domain:)) "%U depuis %a  %i \n\n") :prepend 1 :empty-lines-after 1)
+	("q" "Quotes" entry (file+olp "~/These/notes.org" "Quotes")
+	 ,(concat "* %?\n" (mlk_prop '(Qui: Où:)) "%U depuis %a  %i \n\n") :empty-lines-after 1)
+	("t" "Todo" entry (file "~/TODO.org")
+	 "* TODO %? le %U" :prepend 1 :empty-lines-after 1)
+	("T" "Todo with file" entry (file "~/TODO.org")
+	 "* TODO %? depuis %a le %U" :prepend 1 :empty-lines-after 1)
+	("M" "Todo Mail" entry (file+olp "~/TODO.org" "Courrier")
+	 ,(concat "* %?\n" (mlk_prop '(Qui: Où: Quand:)) "%U depuis %a  %i \n\n") :prepend 1 :empty-lines-after 1)
+	("r" "Todo Réunion" entry (file "~/TODO.org")
+	 ,(concat "* TODO test %?\n" "%U depuis %a  %i \n\n") :prepend t :empty-lines-after 1)
+	("u" "Réunions" entry (file+olp "~/These/Réunions/reunions-visios.org" "Réunion Suivi thèse")
+	 ,(concat "* %?\n" (mlk_prop '(Qui: Où: Quand:)) "%U depuis %a  %i \n\n") :prepend 1 :empty-lines-after 1)
+	("s" "stage" entry (file+olp "~/Formation/Stagiaires/Emmanuella.org" "En Vrac")
+	 ,(concat "* %? %U \n %i \n\n") :prepend 1 :empty-lines-after 1)
+	("v" "Vidéos" entry (file+olp "~/These/notes.org" "Vidéos lectures")
+	 "* %?\n%U depuis  %a  %i \n\n" :prepend 1 :empty-lines-after 1)
+	("o" "Onions" entry (file+olp "~/Tor/onion.bk.org" "OnionMarks")
+	 ,(concat "* %?\n" (mlk_prop '("DateValidite: %U" "URL: " "Nom: " "Categorie: ")) " %i \n\n") :prepend 1 :empty-lines-after 1)
+	("K" "Kola" entry (file+olp "~/Prog/Python/Kola/journal.org" "Trading")
+	 ,(concat "* %U %?\n" (mlk_prop '("Date: %U" "réveillé: " "Hier: " "Jugement: " "Demain: " "Position: " "Balance: " "leverage: " "screen: ")) " %i \n\n") :prepend 1 :empty-lines-after 1)
+	("k" "note dans kola" entry (file+olp "~/Prog/Python/Kola/journal.org" "Notes")
+	 "* %? \n%U %a \n" :prepend 1 :empty-lines-after 1)
+	("A" "Notes dans ANOM" entry (file+olp "~/Documents/Domiciles/ANOM/recherche.org" "Notes")
+	 ,(concat "* %?\n" (mlk_prop '("DATECONSULTATION: %U" "COTE: " "URL: " "INTERET: " "MOTSCLEFS :")) " %i \n\n") :prepend 1 :empty-lines-after 1)
+	))
+
+   #+END_SRC
+
+* Refile (and copy)
+  Moving tree to other place efficiently
+  #+BEGIN_SRC emacs-lisp -i
+(setq org-reverse-note-order 1)  ; put notes at the top I guess
+
+(setq org-refile-targets `(("~/These/notes.org" . (:level . 1))
+			   ("~/These/notes.org" . (:regexp . ,(format-time-string "%Y-%m-%d")))
+			   ("~/These/notes.org" . (:tag . "refile"))
+			   ;; ("~/Prog/Pyton/Kola/journal.org" . (:level . 1))
+			   (buffer-file-name . (:level . 1))
+			   ("~/These/articles.org" . (:level . 1))))
+					; check org-refile-targets ; for targets
+(global-set-key (kbd "s-o y") 'org-copy)
+(global-set-key (kbd "s-o r") 'org-refile)
+(global-set-key (kbd "s-o s") 'org-refile-goto-last-stored)
+
+  #+END_SRC
+** Org Babel
+   Check the guy at https://github.com/gregsexton/ob-ipython
+
+   #+BEGIN_SRC emacs-lisp -i
+(require 'ob-ipython)
+
+;; set code langages
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (ipython . t)
+   (python . t)
+   (asymptote . t)
+   (R . t)
+   (latex . t)
+   (ein . t)
+   (dot . t)
+   (plantuml . t)
+   (js . t)
+   (php . t)  ;; voir  https://github.com/emacs-php/php-runtime.el
+   ))
+
+;; don't prompt me to confirm everytime I want to evaluate a block
+(setq org-confirm-babel-evaluate nil)
+
+;; pour plantuml (diagram de classe)
+(setq org-plantuml-jar-path
+      (expand-file-name "~/bin/plantuml.jar"))
+
+;; display/update images in the buffer after I evaluate
+(add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
+
+;; Add timestamp when todo items are done
+(setq org-log-done 'time)
+
+;; set python version for code evaluation
+(setq org-babel-python-command "~/.pyenv/shims/python3.8")
+
+
+   #+END_SRC
+
+*** COMMENT mlk-letter
+    Essaye de faire mon export mais ne fonctionne pas simplement comme ça.
+    besoin d'ajouter le traitement des mots clefs, 
+    lieu, name, téléphone ect.. remplacer begin doc par begin letter
+    #+BEGIN_SRC emacs-lisp -i  
+(add-to-list 'org-latex-classes 
+	     '("mlk-letter"
+	       "\\documentclass[11pt, francais]{lettre}
+    [NO-DEFAULT-PACKAGES]
+    \\usepackage[T1]{fontenc}
+    \\usepackage[utf8]{inputenc}
+    \\usepackage{lmodern}
+    \\usepackage[francais]{babel}
+    \\usepackage{mathcomp}
+    \\usepackage{url}
+
+    % pour enlever le trait de pliage
+    \\makeatletter
+    \\newcommand*{\\NoRule}{\\renewcommand*{\\rule@length}{0}}
+    \\makeatother
+    [PACKAGES]
+    [EXTRA]"
+	       ))
+
+    #+END_SRC
+
+
+** ox-Koma letter
+   voir [[file:plugins/ox-koma-letter.el]] pour d'autre exemples
+
+   #+BEGIN_SRC emacs-lisp -i  
+;; koma-letter-export, letter with org mode
+(add-to-list 'load-path "~/.emacs.d/plugins/")
+(eval-after-load 'ox '(require 'ox-koma-letter))
+
+;; add pacakges ici
+;; uncomment to autoload babel
+;; (eval-after-load 'ox-latex
+;;   '(add-to-list 'org-latex-packages-alist '("AUTO" "babel" t) t))
+
+;; komat personnalised
+(eval-after-load 'ox-koma-letter
+  '(progn
+     (add-to-list 'org-latex-classes
+		  '("nf-letter"
+		    "\\documentclass{scrlttr2}
+    \\usepackage[french]{babel}
+    [NO-DEFAULT-PACKAGES]"
+		    ))))
+
+;; \[NO-DEFAULT-PACKAGES]
+;; \[PACKAGES]
+;; \[EXTRA]"))
+
+;;	  \[DEFAULT-PACKAGES]
+
+(setq org-koma-letter-default-class "nf-letter")
+   #+END_SRC
+
+
+*** COMMENT Latex-export for csedu class (ox-latex export)
+
+    #+BEGIN_SRC emacs-lisp -i
+(add-to-list 'org-latex-classes '("csedu"
+				  "\\documentclass[a4paper,twoside]{article}
+    [NO-DEFAULT-PACKAGES]
+    \\usepackage{subfigureThen}
+    \\usepackage{calc}
+    \\usepackage{amssymb}
+    \\usepackage{amstext}
+    \\usepackage{amsmath}
+    \\usepackage{amsthm}
+    \\usepackage{multicol}
+    \\usepackage{pslatex}
+    % added packages
+    \\usepackage{natbib}
+    \\usepackage[T1]{fontenc}
+    \\usepackage[utf8]{inputenc}
+    \\usepackage[english]{babel}
+    \\usepackage[xindy,acronym]{glossaries}
+    \\usepackage{graphicx}
+    [EXTRA]
+    \\usepackage{SCITEPRESS}     % Please add other packages that you may need BEFORE the SCITEPRESS.sty package.
+    "
+				  ("\\section{%s}" . "\\section*{%s}")
+				  ("\\subsection{%s}" . "\\subsection*{%s}")
+				  ("\\subsubsection{%s}" . "\\subsubsection*{%s}")))
+
+    #+END_SRC
+** ox-beamer
+   #+BEGIN_SRC emacs-lisp -i  
+(add-to-list 'org-latex-classes
+	     '("mlk-beamer"
+	       "\\documentclass{beamer}
+    [NO-DEFAULT-PACKAGES]
+    \\usepackage[utf8]{inputenc}
+    \\usepackage[T1]{fontenc}
+    \\usepackage[utf8]{inputenc}
+    \\usepackage{lmodern}
+    \\usepackage[francais]{babel}
+    \\usepackage{multicol}
+    \\usepackage{mlkkone}
+    \\usepackage{hyperref}
+    \\usepackage{MnSymbol,wasysym}
+
+    \\mode<presentation>{
+    \\usetheme{Montpellier}
+    \\setbeamercovered{transparent}
+    \\setbeamertemplate{section in toc}[sections numbered]
+    \\setbeamertemplate{subsection in toc}[square]
+    }
+
+    \\newcommand*\\oldmacro{}%
+    \\let\\oldmacro\\insertshorttitle%
+    \\renewcommand*\\insertshorttitle{%
+    \\oldmacro\\hfill%
+    \\insertframenumber\\,/\\,\\inserttotalframenumber}
+
+    \\definecolor{links}{HTML}{2A1B81}
+    \\hypersetup{colorlinks,linkcolor=,urlcolor=links,pdflang={francais}}
+    "
+	       ("\\section{%s}" . "\\section*{%s}")
+	       ("\\subsection{%s}" . "\\subsection*{%s}")
+	       ("\\subsubsection{%s}" . "\\subsubsection*{%s}")))
+
+   #+END_SRC
+** these-chapter-classe
+   #+BEGIN_SRC emacs-lisp -i
+(add-to-list 'org-latex-classes '("these-chapter"
+				  "\\documentclass[a4paper,twoside]{book}
+    [NO-DEFAULT-PACKAGES]
+    % added packages
+    \\usepackage[T1]{fontenc}
+    \\usepackage[utf8]{inputenc}
+    \\usepackage[french]{babel}
+    \\usepackage{mlkkone}
+    \\usepackage{hyperref}
+\\usepackage{amsmath}
+\\usepackage{amssymb}
+\\usepackage{amstext}
+\\usepackage{amsthm}
+\\usepackage{booktabs}  % for booktab
+\\usepackage{calc}
+\\usepackage{color}
+\\usepackage{comment}
+\\usepackage{graphicx} 
+\\usepackage{ifpdf, color}
+\\usepackage{lmodern} % Assurer une bonne impression!
+\\usepackage{multicol}
+\\usepackage{multirow}  % multi row in table
+\\usepackage{paralist} % pour des listes en ligne 
+\\usepackage{parcolumns}
+\\usepackage{pifont} % Pour utiliser des symboles divers.
+\\usepackage{subfigure}
+\\usepackage{tabularx}  % table with automatic width
+\\usepackage{textcomp}
+\\usepackage{tikz} % tikz est utilise pour tracer des boites, par exemple
+\\usepackage{varioref} % pour les références relatives
+    [EXTRA]"
+				  ("\\section{%s}" . "\\section*{%s}")
+				  ("\\subsection{%s}" . "\\subsection*{%s}")
+				  ("\\subsubsection{%s}" . "\\subsubsection*{%s}")))
+
+   #+END_SRC
+** these-mlk-classe
+   #+BEGIN_SRC emacs-lisp -i
+(add-to-list 'org-latex-classes '("these-mlk"
+"\\documentclass{these-mlk}
+[NO-DEFAULT-PACKAGES]
+% added packages
+\\bibliography{./Biblio/bib_manuscrit.bib}
+
+\\makeglossaries
+\\loadglsentries{./Biblio/glo_manuscrit}
+
+\\geometry{vmargin=4.0cm}
+[EXTRA]
+"
+("\\chapter{%s}" . "\\chapter*{%s}")
+("\\section{%s}" . "\\section*{%s}")
+("\\subsection{%s}" . "\\subsection*{%s}")
+("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+("\\paragraph{%s}" . "\\paragraph*{%s}")
+("\\subparagraph{%s}" . "\\subparagraph*{%s}")
+))
+
+
+;; hooking to export
+     (defun my-latex-filter-nobreaks (text backend info)
+       "Ensure \" \" are properly handled in LaTeX export."
+       (when (org-export-derived-backend-p backend 'latex)
+         (replace-regexp-in-string " " "~" text)))
+
+     (add-to-list 'org-export-filter-plain-text-functions
+                  'my-latex-filter-nobreaks)
+
+;; Hooks on exports
+(defun my-latex-filter-nobreaks (text backend info)
+"Ensure \" \" are properly handled in LaTeX export."
+(when (org-export-derived-backend-p backend 'latex) 
+(replace-regexp-in-string " " "~" text)))
+
+(add-to-list 'org-export-filter-plain-text-functions 'my-latex-filter-nobreaks)
+ 
+   #+END_SRC
+** Org keyboard shortcuts
+
+   #+BEGIN_SRC emacs-lisp -i
+(global-set-key (kbd "s-o =") 'org-show-current-heading-tidily)
+(global-set-key (kbd "s-o e") 'org-odt-export-to-odt)
+;; (global-set-key (kbd "s-o a") 'org-agenda)
+
+(setq org-capture-templates-contexts nil)
+(setq org-attach-director (concat org-directory "Attach-data/"))
+(global-set-key (kbd "s-o a") 'org-attach) ; default C-c C-a
+   #+END_SRC
+
+** Taskjuggler
+   Un mode pour faire des export d'org vers un logiciel de planning
+   https://github.com/csrhodes/tj3-mode
+
+   Pour faire des gantt en latex voir aussi    https://github.com/swillner/org-gantt
+
+** notes.org file
+   #+BEGIN_SRC emacs-lisp -i
+(defun mlk-ff-abstract ()
+  "Format abstract.  Need the point at the beggining of the region"
+  (interactive)
+  (while (search-forward "
+    " (region-end) t)
+    (replace-match " " nil t))
+  (while (search-forward "-
+    " (region-end) t)
+    (replace-match "" nil t))
+  (while (search-forward "." (region-end) t)
+    (replace-match ". " nil t))
+  )
+
+(global-set-key (kbd "s-k f") 'ff-abstract) ; utilise s-k pour les raccourcis vers mes fonctions
+
+   #+END_SRC
+
+* Collaborer (magit)
+** magit
+   https://github.com/magit/magit
+   https://magit.vc/manual/2.13.0/magit.html
+   Utiliser 
+   org-store-link
+   #+BEGIN_SRC emacs-lisp -i
+(global-set-key (kbd "C-x g") 'magit-status)
+(global-set-key (kbd "s-g s-g") 'magit-status)
+   #+END_SRC
+
+* Emacs customization
+  #+BEGIN_SRC emacs-lisp -i
+;; If there is more than one, they won't work right.
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(Info-directory-list (append Info-directory-list Info-default-directory-list)) '(ansi-color-faces-vector
+   [default default default italic underline success warning error])
+ '(ansi-color-names-vector
+   ["#212526" "#ff4b4b" "#b4fa70" "#fce94f" "#729fcf" "#e090d7" "#8cc4ff" "#eeeeec"])
+ '(erc-hide-list '("JOIN" "KICK" "PART" "QUIT"))
+ '(custom-enabled-themes '(tsdh-dark tsdh-light))
+ '(graphviz-dot-auto-indent-on-braces t)
+ '(graphviz-dot-auto-indent-on-newline t)
+ '(graphviz-dot-auto-indent-on-semi t)
+ '(graphviz-dot-delete-completions t)
+ '(graphviz-dot-toggle-completions nil)
+ '(graphviz-dot-view-edit-command t)
+ '(inhibit-startup-screen t)
+					; to run tangle org mode with my virtual env
+ '(ob-ipython-command "/home/mlkbk/.pyenv/shims/jupyter")
+ '(ob-python-command  "/home/mlkbk/.pyenv/shims/jupyter")  
+ '(org-beamer-frame-level 2)
+ '(org-hide-leading-stars t)
+ '(org-latex-default-packages-alist
+   (quote
+    (("AUTO" "inputenc" t
+      ("pdflatex"))
+     ("T1" "fontenc" t
+      ("" "graphicx" t nil)
+      ("" "grffile" t nil)
+      ("" "longtable" nil nil)
+      ("" "wrapfig" nil nil)
+      ("" "rotating" nil nil)
+      ("normalem" "ulem" t nil)
+      ("" "amsmath" t nil)
+      ("" "textcomp" t nil)
+      ("" "amssymb" t nil)
+      ("" "titletoc" t nil)
+      ("" "capt-of" nil nil)
+      ("" "hyperref" nil nil)))))
+ '(org-list-allow-alphabetical t)
+ '(org-odd-levels-only nil)
+ '(org-use-sub-superscripts (quote {}))
+ '(org-startup-truncated nil)
+ '(outline-regexp "[%]+" t)
+ '(package-selected-packages
+   '(csv-mode htmlize yaml-mode web-mode web-beautify visual-fill-column use-package tern smartparens pyenv-mode-auto php-auto-yasnippets org-plus-contrib ob-ipython markdown-mode hideshow-org hide-comnt graphviz-dot-mode folding flycheck-pycheckers flycheck-plantuml flycheck-css-colorguard fill-column-indicator ein auctex ac-html-csswatcher ac-html))
+ '(python-shell-completion-setup-code "from IPython.core.completerlib import module_completion")
+ '(python-shell-completion-string-code
+   "';'.join(get_ipython().Completer.all_completions('''%s'''))
+     ")
+     '(python-shell-interpreter "~/.pyenv/shims/python3")
+ '(python-shell-interpreter-args "-i")
+ ;; '(python-shell-interpreter-args "--simple-prompt -i")
+ '(python-shell-prompt-detect-failure-warning nil)
+ '(straight-check-for-modifications (quote (check-on-save)))
+ '(scroll-bar-mode nil)
+ '(tool-bar-mode nil)
+ '(menu-bar-mode nil)
+'(global-visual-line-mode t)
+ '(yas-snippet-dirs '("~/.emacs.d/snippets") nil (yasnippet)))
+
+  #+END_SRC
+toggle-menu-bar-mode-from-frame
+
+* Lire (pdftool)
+  https://github.com/politza/pdf-tools
+- installer  elpa-pdf-tools-server
+
+M-x pdf-tools-help RET
+M-x pdf-tools-customize RET
+  #+BEGIN_SRC emacs-lisp -i
+
+(require 'pdf-occur)
+(require 'pdf-tools)
+(use-package pdf-tools
+  :ensure t
+  :config
+  (custom-set-variables
+    '(pdf-tools-handle-upgrades nil)) ; Use brew upgrade pdf-tools instead.
+  (setq pdf-info-epdfinfo-program "/home/mlkbk/.emacs.d/pdf-tools/server/epdfinfo"))
+;; (pdf-tools-install)
+(pdf-loader-install)
+
+;; (pdf-tools-install)  
+;; (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
+  #+END_SRC
+
+* Macros
+#+BEGIN_SRC emacs-lisp -i
+#+END_SRC
+
+* COMMENT Commented
+
+** COMMENT Administrer (dired)
+   installing  https://github.com/jojojames/dired-sidebar
+   et diredfull (pour les couleurs)  https://github.com/thamer/diredful
+   http://emacsrocks.com/e16.html
+
+   dired me semble installé par défaut
+   #+BEGIN_SRC emacs-lisp -i
+(require 'dired)
+
+   #+END_SRC
+*** COMMENT dired-details
+    Pas vraiment besoin de ça ( toggle details already
+    #+BEGIN_SRC emacs-lisp -i
+(require 'dired-details)
+(setq-default dired-detail-hidden-string "---")
+;;(dired-detail-install)
+    #+END_SRC
+
+**** COMMENT avoir deux dossiers ouverts en même temps
+     #+BEGIN_SRC emacs-lisp -i
+(setq dired-dwim-target 1)
+     #+END_SRC
+*** COMMENT dired-sidebar
+    #+BEGIN_SRC emacs-lisp -i
+(use-package dired-sidebar
+  ;; :ensure t
+  :commands (dired-sidebar-toggle-sidebar))
+    #+END_SRC
+
+** COMMENT Company
+   autocompletion code http://company-mode.github.io/
+   #+BEGIN_SRC emacs-lisp -i
+(require 'company)
+   #+END_SRC
+
+*** company auctex
+    https://github.com/alexeyr/company-auctex/
+    #+BEGIN_SRC emacs-lisp -i
+(require 'company-auctex)
+(company-auctex-init)
+    #+END_SRC
+
+*** COMMENT company-bibtex
+    #+BEGIN_SRC emacs-lisp -i
+(require 'company-bibtex)
+(add-to-list 'company-backends 'company-bibtex)
+(setq company-bibtex-bibliography
+      '("/home/cooluser/thesis/thesis1.bib"
+	"/home/cooluser/thesis/thesi2.bib"))
+(setq company-bibtex-key-regex "[[:alnum:]+_]*")
+
+    #+END_SRC
+
+** COMMENT necessary with straight ?
+   #+BEGIN_SRC emacs-lisp -i
+(let((default-directory  "~/.emacs.d/"))
+  (normal-top-level-add-subdirs-to-load-path))
+   #+END_SRC
+
+*** package stuff
+    #+BEGIN_SRC emacs-lisp -i
+(setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
+			 ("melpa" . "https://melpa.org/packages/")
+			 ("org" . "http://orgmode.org/elpa/")))
+    #+END_SRC
+
+** COMMENT woman
+   wo (without, merci !) man
+   Facilite la lecture des pages de manuel dans emacs
+   Pas très utile
+   #+BEGIN_SRC emacs-lisp -i
+(require 'woman)
+(autoload 'woman "woman"
+  "Decode and browse a UN*X man page." t)
+(autoload 'woman-find-file "woman"
+  "Find, decode and browse a specific UN*X man-page file." t)
+
+					; do some keybinding for
+;; (key-chord-define-global "wm" 'woman)
+   #+END_SRC
+** COMMENT Interactively Do  (IDO)
+   déinstallé ? car find it confusing more than usefull
+   #+BEGIN_SRC emacs-lisp -i
+(require 'ido)  ;
+(ido-mode 1)
+(ido-everywhere 1)  ; same as t
+   #+END_SRC
+
+** COMMENT debuging mc
+   #+BEGIN_SRC emacs-lisp -i
+;; mode mineur d'orgt
+(shell-dirtrack-mode -1)
+(global-git-commit-mode -1)
+(which-key-mode ARG)
+(async-bytecomp-package-mode -1)
+(auto-composition-mode -1)
+(auto-compression-mode -1)
+(auto-encryption-mode -1)
+(blink-cursor-mode -1)
+(buffer-face-mode -1)
+(delete-selection-mode -1)
+(diff-auto-refine-mode -1)
+(eldoc-mode -1)
+(electric-indent-mode -1)
+(electric-pair-mode -1)
+(engine-mode -1)
+(file-name-shadow-mode -1)
+(font-lock-mode -1)
+(global-aggressive-indent-mode -1)
+(global-eldoc-mode -1)
+(global-font-lock-mode -1)
+(global-git-commit-mode -1)
+(global-magit-file-mode -1)
+(line-number-mode -1)
+(magit-auto-revert-mode -1)
+(menu-bar-mode -1)
+(mouse-wheel-mode -1)
+(override-global-mode -1)
+(tex-pdf-mode -1)
+(tooltip-mode -1)
+(transient-mark-mode -1)
+(which-key-mode -1)
+(yas-mode -1)
+(yas-global-mode -1)
+   #+END_SRC
+** COMMENT use-package
+   A must read https://github.com/jwiegley/use-package à lire (30 minutes)
+
+   #+BEGIN_SRC emacs-lisp -i
+(eval-when-compile
+  ;; Following line is not needed if use-package.el is in ~/.emacs.d
+  ;; (add-to-list 'load-path "<path where use-package is installed>")  ; it ise
+  (require 'use-package))
+   #+END_SRC
+
+** COMMENT pudb
+   #+BEGIN_SRC emacs-lisp -i  
+;; this location is "~/.pudb-bp" in older versions of pudb
+(setq pudb-bp-file (expand-file-name "~/.config/pudb/saved-breakpoints"))
+(defun pudb-add-breakpoint ()
+  (interactive)
+  (append-to-file
+   (concat "b " buffer-file-name ":"
+	   (nth 1 (split-string (what-line))) "\n")
+   nil pudb-bp-file))
+(define-key py-mode-map (kbd "C-c C-t") 'pudb-add-breakpoint)
+   #+END_SRC
+** COMMENT Proxy lium
+   ;; Trying to get emacs connect to internet from behind a proxy
+   En fait emacs utilise les proxy système donc si correctement lançé il n'y a pas de problème
+   #+BEGIN_SRC emacs-lisp -i  :tangle no
+
+(setq url-using-proxy t)
+(setq url-proxy-services '(
+			   ("no_proxy" . "localhost,127.0.0.1/8,157.16.0.0/12,192.168.0.0/16,univ-lemans.fr")
+			   ("http" . "http://proxy.univ-lemans.fr:3128")
+			   ("https" . "http://proxy.univ-lemans.fr:3128")
+			   ("ftp" . "http://proxy.univ-lemans.fr:3128")
+			   )
+      )
+   #+END_SRC
+** COMMENT Pour Doc view
+   #+BEGIN_SRC emacs-lisp -i
+;; peut utiliser tout simplement le raccourcis pour search C-s
+(global-set-key (kbd "M-n") 'doc-view-search-next-match)
+(global-set-key (kbd "M-p") 'doc-view-search-previous-match)
+   #+END_SRC
+
+** COMMENT multi-mode
+   https://github.com/purcell/mmm-mode
+   #+BEGIN_SRC emacs-lisp -i  
+(setq mmm-global-mode 'maybe)
+(mmm-add-mode-ext-class 'html-mode "\\.php\\'" 'html-php)
+   #+END_SRC
+** COMMENT hideshow-mode
+   default prefix command rebind C-c @.  Rebinding it to s-h  (window-h)
+   #+BEGIN_SRC emacs-lisp -i
+;; (global-set-key (kbd "s-h s-h") 'hs-toggle-hiding)
+;; (global-set-key (kbd "s-h A") 'hs-show-all)
+;; (global-set-key (kbd "s-h a") 'hs-hide-all)
+;; (global-set-key (kbd "s-h B") 'hs-show-block)
+;; (global-set-key (kbd "s-h b") 'hs-hide-block)
+;; (global-set-key (kbd "s-h l") 'hs-hide-level)
+;; (global-set-key (kbd "s-h c") 'hs-hide-initial-comment-block)
+   #+END_SRC
+
+** COMMENT pcre (perl regex)
+   https://github.com/joddie/pcre2el
+   à revoir
+   #+BEGIN_SRC emacs-lisp -i
+(use-package pcre2el
+  ;; :ensure t
+  :config
+  (pcre-mode))
+   #+END_SRC
+

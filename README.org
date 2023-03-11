@@ -1,0 +1,5 @@
+* Seed
+Un repertoire qui contient le germe de mes projets.
+** Prerequis
+Installer emacs et pyenv
+

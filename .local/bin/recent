@@ -1,0 +1,70 @@
+#!/bin/bash
+# #!/bin/bash -x
+# for debugging
+
+#### Function section
+
+printusage() {
+    prog=$(basename "$0") # s'écrit aussi ${0##*/}
+    cat <<EOF
+Usage: $prog [-hL] [-p Path] [-d DEPTH] [-c CTIME] [-n NAME] [-f FORMAT]
+Run: find "\$followlink" "\$path" -maxdepth "\$depth" \( -path "*/.*" -o -name "__*__" \) -prune -o -type f -name "\$name" -ctime "\$ctime" -printf "\$format\n" 2>/dev/null | sort | uniq -w20
+
+Return find recent file in DIR
+     -h	 	  Affiche l'aide
+     -L 	  Should find follow links
+     -c CTIME	  ctime parameter # days to go back (def. -100)
+     -d DEPTH	  Max depth to search for (def. 1)
+     -f FORMAT 	  format of printf (def. %C+%p)
+     -n NAME	  file name parameter (def. *)
+     -p	PATH	  le chemin à chercher (def. "./")
+EOF
+}
+
+#### handle arguments
+path="./"
+depth=1
+format="%CY/%Cm/%Cd+%CH:%CM %p"
+followlink="-L"
+ctime="-100"  # last 100 days
+name="*"  # limit to file name
+OPTIND=1
+while getopts "hLc:d:f:n:p:" opt; do
+    case "$opt" in
+	h)
+	    printusage
+	    exit 0
+	    ;;
+	L) followlink="-L";;
+	c) ctime=$OPTARG;;
+	d) depth=$OPTARG;;
+	f) ctime=$OPTARG;;	
+	n) name=$OPTARG;;
+	p) path=$OPTARG;;
+	'?')
+	    printusage >&2
+	    exit 1;;
+    esac
+done
+shift "$((OPTIND-1))" # Shift off the options and optional --.
+
+#### Run section
+echo find "$followlink" "$path" -maxdepth "$depth" \\\( -path \"*/.*\" -o -name "__*__" \\\) -prune -o -type f -name \""$name"\" -ctime "$ctime" -printf \""$format\n"\" 2>/dev/null \| sort \| uniq -w20
+
+find "$followlink" "$path" -maxdepth "$depth" \( -path "*/.*" -o -name "__*__" \) -prune -o -type f -name "$name" -ctime "$ctime" -printf "$format\n" 2>/dev/null | sort | uniq -w20 
+
+# find "$followlink" "$path" -maxdepth "$depth" \( -path "*/.*" -o -name "__*__" \) -prune -o -type f -name "$name" -ctime "$ctime" -printf "$format\n" 2>/dev/null | sort | uniq -w20 > tmp
+
+# cat tmp | while read line; do md5sum "${line##* }"; done > tmp.md5sum
+# cat tmp.md5sum | while read line; do ls -l "${line##* }"; done
+
+exit 1
+
+
+
+
+
+
+
+
+
